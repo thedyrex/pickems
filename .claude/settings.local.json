@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsx:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx supabase db push)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx supabase:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
