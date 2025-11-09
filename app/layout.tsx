@@ -14,7 +14,7 @@ const posterGothic = localFont({
 
 export const metadata: Metadata = {
   title: "PICK'EMS",
-  description: "Tournament Pick'ems Bracket",
+  description: "OWCS S2 STOCKHOLM WORLD FINALS PICK'EMS",
   icons: {
     icon: '/fonts/owcs.png',
   },
