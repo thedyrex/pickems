@@ -80,3 +80,33 @@ export async function resetAllDays(): Promise<boolean> {
 
   return true
 }
+
+/**
+ * Auto-enable the next day when current day starts
+ * This should be called when checking day lock status
+ * Special case: When Day 1 starts, both Day 1 and Day 2 are enabled
+ */
+export async function autoEnableNextDay(currentDay: number, isCurrentDayLocked: boolean): Promise<void> {
+  // Only auto-enable if the current day just became locked
+  if (!isCurrentDayLocked || currentDay >= 5) {
+    return
+  }
+
+  const nextDay = currentDay + 1
+
+  // Check if next day is already enabled
+  const nextDaySetting = await getDaySetting(nextDay)
+
+  if (nextDaySetting && !nextDaySetting.is_enabled) {
+    // Enable the next day
+    await updateDaySetting(nextDay, true)
+  }
+
+  // Special case: When Day 1 starts, also enable Day 2
+  if (currentDay === 1) {
+    const day2Setting = await getDaySetting(2)
+    if (day2Setting && !day2Setting.is_enabled) {
+      await updateDaySetting(2, true)
+    }
+  }
+}

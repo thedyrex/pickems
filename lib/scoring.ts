@@ -161,12 +161,16 @@ export async function recalculateMatchScores(matchId: string): Promise<boolean> 
 }
 
 /**
- * Get leaderboard data
+ * Get leaderboard data (only verified users)
  */
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase
     .from('leaderboard')
-    .select('*')
+    .select(`
+      *,
+      users!inner(email_verified)
+    `)
+    .eq('users.email_verified', true)
     .order('total_points', { ascending: false })
 
   if (error) {

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { verifyEmail } from '@/lib/verification'
 import Link from 'next/link'
 
 function VerifyEmailContent() {
@@ -21,15 +20,29 @@ function VerifyEmailContent() {
         return
       }
 
-      const result = await verifyEmail(token)
-      setStatus(result.success ? 'success' : 'error')
-      setMessage(result.message)
+      try {
+        const response = await fetch('/api/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        })
 
-      // Redirect to home after 3 seconds if successful
-      if (result.success) {
-        setTimeout(() => {
-          router.push('/home')
-        }, 3000)
+        const result = await response.json()
+        setStatus(result.success ? 'success' : 'error')
+        setMessage(result.message)
+
+        // Redirect to home after 3 seconds if successful
+        if (result.success) {
+          setTimeout(() => {
+            router.push('/home')
+          }, 3000)
+        }
+      } catch (error) {
+        console.error('Error verifying email:', error)
+        setStatus('error')
+        setMessage('An error occurred. Please try again.')
       }
     }
 

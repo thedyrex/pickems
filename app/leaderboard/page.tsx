@@ -36,6 +36,9 @@ export default function LeaderboardPage() {
 
   // No loading screen - just show the page immediately
 
+  // Check if everyone has zero points
+  const hasAnyScores = leaderboard.some(entry => entry.total_points > 0)
+
   return (
     <div className="min-h-screen bg-white" style={{
       backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
@@ -178,7 +181,7 @@ export default function LeaderboardPage() {
             </table>
           </div>
 
-          {leaderboard.length === 0 && (
+          {(leaderboard.length === 0 || !hasAnyScores) && (
             <div className="text-center py-12">
               <p className="text-gray-500">No scores yet. Matches need to be completed first!</p>
             </div>

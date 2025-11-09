@@ -8,7 +8,7 @@ import MatchCard from "@/components/MatchCard";
 import VerificationBanner from "@/components/VerificationBanner";
 import { getMatchesByDay, saveUserPick, getUserPicks, DbMatch, UserPick, isDayLocked } from "@/lib/matches";
 import { getTeams, Team } from "@/lib/teams";
-import { getDaySettings, DaySetting } from "@/lib/daySettings";
+import { getDaySettings, DaySetting, autoEnableNextDay } from "@/lib/daySettings";
 import { supabase } from "@/lib/supabase";
 
 export default function HomePage() {
@@ -52,11 +52,20 @@ export default function HomePage() {
       setUserPicks(picksMap);
 
       // Check which days are locked based on match start times
+      // and auto-enable next day when current day starts
       const lockedDaysMap: Record<number, boolean> = {};
       for (let day = 1; day <= 5; day++) {
-        lockedDaysMap[day] = await isDayLocked(day);
+        const isLocked = await isDayLocked(day);
+        lockedDaysMap[day] = isLocked;
+
+        // Auto-enable next day when this day becomes locked
+        await autoEnableNextDay(day, isLocked);
       }
       setLockedDays(lockedDaysMap);
+
+      // Reload day settings after auto-enable check
+      const updatedDaySettings = await getDaySettings();
+      setDaySettings(updatedDaySettings);
 
       // Check email verification status
       const { data: userData } = await supabase
@@ -182,6 +191,10 @@ export default function HomePage() {
             const isAdminDisabled = daySetting ? !daySetting.is_enabled : false;
             const isTimeLocked = lockedDays[selectedDay] ?? false;
             const isDayLocked = isAdminDisabled || isTimeLocked;
+            const isEmailUnverified = !emailVerified;
+
+            // Disable picks if day is locked OR email is not verified
+            const canMakePick = !isDayLocked && !isEmailUnverified;
 
             return (
               <MatchCard
@@ -191,7 +204,7 @@ export default function HomePage() {
                 userPick={userPicks[match.id]}
                 allUserPicks={userPicks}
                 allMatches={matches}
-                onSavePick={!isDayLocked ? handleSavePick : undefined}
+                onSavePick={canMakePick ? handleSavePick : undefined}
               />
             );
           })}

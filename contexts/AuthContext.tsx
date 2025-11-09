@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { sendVerification } from '@/lib/verification'
 
 interface AuthContextType {
   user: User | null
@@ -42,21 +41,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, displayName: string) => {
+    // Convert display name to lowercase
+    const normalizedDisplayName = displayName.toLowerCase()
+
+    // Check if display name already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('display_name', normalizedDisplayName)
+      .maybeSingle()
+
+    if (existingUser) {
+      return {
+        error: {
+          message: 'Display name already taken. Please choose a different one.',
+        } as any
+      }
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          display_name: displayName,
+          display_name: normalizedDisplayName,
         },
+        // Disable Supabase's automatic confirmation email
+        emailRedirectTo: undefined,
       },
     })
 
-    // Send verification email after successful signup
+    // Send our custom verification email after successful signup
     if (!error && data.user) {
-      // Note: The verification email will be sent, but we don't wait for it
-      // to avoid blocking the signup process
-      sendVerification(data.user.id, email, displayName).catch(err => {
+      // Call API route to send verification email (don't wait for it)
+      fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: data.user.id,
+          email,
+          displayName: normalizedDisplayName,
+        }),
+      }).catch(err => {
         console.error('Failed to send verification email:', err)
       })
     }

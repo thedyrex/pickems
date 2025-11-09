@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { getSupabaseAdmin } from './supabase'
 import { sendVerificationEmail } from './email'
 
 /**
@@ -14,7 +14,8 @@ export async function sendVerification(userId: string, email: string, displayNam
     expiresAt.setHours(expiresAt.getHours() + 24)
 
     // Update user with verification token
-    const { error: updateError } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({
         verification_token: verificationToken,
@@ -42,8 +43,10 @@ export async function sendVerification(userId: string, email: string, displayNam
  */
 export async function verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
+
     // Find user with this token
-    const { data: user, error: fetchError } = await supabase
+    const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('id, email_verified, verification_token_expires')
       .eq('verification_token', token)
@@ -73,7 +76,7 @@ export async function verifyEmail(token: string): Promise<{ success: boolean; me
     }
 
     // Mark email as verified and clear token
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabaseAdmin()
       .from('users')
       .update({
         email_verified: true,
@@ -108,14 +111,21 @@ export async function verifyEmail(token: string): Promise<{ success: boolean; me
  */
 export async function resendVerification(userId: string): Promise<{ success: boolean; message: string }> {
   try {
+    console.log('[resendVerification] Starting for userId:', userId)
+
+    const supabaseAdmin = getSupabaseAdmin()
+
     // Get user info
-    const { data: user, error: fetchError } = await supabase
+    const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('email, display_name, email_verified')
       .eq('id', userId)
       .single()
 
+    console.log('[resendVerification] User query result:', { user, fetchError })
+
     if (fetchError || !user) {
+      console.log('[resendVerification] User not found')
       return {
         success: false,
         message: 'User not found.',
@@ -123,14 +133,19 @@ export async function resendVerification(userId: string): Promise<{ success: boo
     }
 
     if (user.email_verified) {
+      console.log('[resendVerification] Email already verified')
       return {
         success: false,
         message: 'Your email is already verified.',
       }
     }
 
+    console.log('[resendVerification] Sending verification email to:', user.email)
+
     // Send new verification email
     const sent = await sendVerification(userId, user.email, user.display_name)
+
+    console.log('[resendVerification] Email sent result:', sent)
 
     if (!sent) {
       return {
